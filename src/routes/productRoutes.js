@@ -1,25 +1,29 @@
 const express = require("express");
-const Mobile = require("../models/productModel"); // import schema
+const Product = require("../models/productModel"); // import schema
 const router = express.Router();
 
-// GET all products from the collection
-// router.get("/mobiles", async (req, res) => {
-//   try {
-//     const products = await Product.find(); // fetch all documents
-//     res.json(products);
-//   } catch (err) {
-//     console.error("Error fetching products:", err);
-//     res.status(500).json({ error: "Server error", details: err.message });
-//   }
-// });
-router.get("/mobiles", async (req, res) => {
+// GET /products?category=mobile&brand=Samsung&minPrice=10000&maxPrice=30000
+router.get("/products", async (req, res) => {
   try {
-    const products = await Mobile.find();
+    const { category, brand, minPrice, maxPrice, rating } = req.query;
+
+    // Build dynamic filter object
+    let filter = {};
+
+    if (category) filter.category = category;
+    if (brand) filter.brand = brand;
+    if (rating) filter.rating = { $gte: Number(rating) };
+    if (minPrice || maxPrice) {
+      filter.price = {};
+      if (minPrice) filter.price.$gte = Number(minPrice);
+      if (maxPrice) filter.price.$lte = Number(maxPrice);
+    }
+
+    const products = await Product.find(filter).limit(50);
     res.set("Cache-Control", "no-store");
     res.json(products);
   } catch (err) {
-    console.error("Error fetching products:", err);
-    res.status(500).json({ error: "Server error", details: err.message });
+    res.status(500).json({ error: "Server error" });
   }
 });
 
